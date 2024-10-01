@@ -1,51 +1,42 @@
+
+# Define variables
 variable "region" {
-  description = "The AWS region to deploy the resources."
-  type        = string
-  default     = "us-east-1"
+  description = "The AWS region"
+  default     = "us-west-2"  # Adjust as needed
 }
 
-variable "lambda_function_name" {
-  description = "Name of the Lambda function to integrate with API Gateway."
-  type        = string
-}
+# variable "lambda_function_arn" {
+#   description = "The ARN of the Lambda function"
+#   type        = string
+# }
 
-variable "api_gateway_name" {
-  description = "Name for the API Gateway."
-  type        = string
-}
-
-variable "api_gateway_description" {
-  description = "Description for the API Gateway."
-  type        = string
-  default     = "REST API for Lambda Integration"
-}
-
-variable "root_path_part" {
-  description = "Path part for the root resource."
-  type        = string
-  default     = "api"
-}
-
-variable "child_resource_path" {
-  description = "Path part for the child resource."
-  type        = string
-  default     = "example"
-}
-
-variable "http_method" {
-  description = "HTTP Method for the API Gateway resource."
-  type        = string
-  default     = "GET"
-}
-
-variable "authorization" {
-  description = "Authorization type for the API Gateway method (NONE, AWS_IAM, COGNITO_USER_POOLS)."
-  type        = string
-  default     = "NONE"
-}
+# variable "lambda_function_name" {
+#   description = "The name of the Lambda function"
+#   type        = string
+# }
 
 variable "stage_name" {
-  description = "Stage name for the API Gateway deployment."
+  description = "The name of the deployment stage"
   type        = string
-  default     = "dev"
+}
+
+variable "api_resources" {
+  description = "Map of API resources, methods, and associated Lambda functions"
+  type = map(object({
+    path_part           = string
+    methods             = list(string)
+    lambda_function_arn = string
+    lambda_function_name = string
+  }))
+}
+
+variable "api_stages" {
+  type    = list(string)
+  default = ["dev", "prod"]
+}
+
+variable "allowed_ips" {
+  description = "allowed IP"
+  type = list (string)
+  
 }
