@@ -247,6 +247,16 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
+
+  # Dynamic trigger
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  # Hash of API resources
+  triggers = {
+    api_resources_hash = md5(jsonencode(var.api_resources))
+  }
 }
 
 # Create a stage for the deployment
