@@ -6,7 +6,7 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 # Define the API Gateway
 resource "aws_api_gateway_rest_api" "rest_api" {
-  name        = "lambda-api-with-cors"
+  name        = var.name
   description = "API Gateway with Lambda integration (non-proxy) and CORS enabled"
 }
 
