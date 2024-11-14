@@ -256,6 +256,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   # Hash of API resources
   triggers = {
     api_resources_hash = md5(jsonencode(var.api_resources))
+    resource_count    = length(var.api_resources)
   }
 }
 
