@@ -221,13 +221,20 @@ locals {
 
 resource "null_resource" "api_redeploy" {
   triggers = {
-    # Encode the api_resources variable to ensure that changes to it trigger a redeployment
     api_resources = jsonencode(var.api_resources)
     stage_name    = var.stage_name
-    # Normalize and re-encode the policy to avoid inconsistencies
     policy_change = jsonencode(local.normalized_policy)
   }
+
+  depends_on = [
+    aws_api_gateway_method_response.api_method_response,
+    aws_api_gateway_method_response.options_method_response,
+    aws_api_gateway_integration.lambda_integration,
+    aws_api_gateway_integration.options_integration,
+    aws_api_gateway_rest_api_policy.rest_api_policy
+  ]
 }
+
 
 # Deploy the API
 resource "aws_api_gateway_deployment" "api_deployment" {
