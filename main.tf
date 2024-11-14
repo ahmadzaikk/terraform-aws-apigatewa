@@ -184,7 +184,7 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
   })
 }
 
-# Deploy the API and ensure it runs last
+# Create the API Gateway Deployment and ensure it runs last
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_method_response.api_method_response,
@@ -194,8 +194,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_rest_api_policy.rest_api_policy,
     aws_api_gateway_resource.api_resource,
     aws_api_gateway_method.api_method,
-    aws_api_gateway_method.options_method,
-    aws_api_gateway_stage.api_stage
+    aws_api_gateway_method.options_method
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
@@ -212,13 +211,10 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 }
 
-# Create a stage for the deployment
+# Create a stage for the deployment (depends only on the deployment, not on itself)
 resource "aws_api_gateway_stage" "api_stage" {
-  depends_on = [
-    aws_api_gateway_deployment.api_deployment,  # Ensure stage is created after deployment
-  ]
-
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 }
+
