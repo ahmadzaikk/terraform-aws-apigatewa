@@ -229,6 +229,7 @@ resource "null_resource" "api_redeploy" {
     aws_api_gateway_resource.api_resource,
     aws_api_gateway_method.api_method,
     aws_api_gateway_method.options_method,
+    aws_api_gateway_integration.lambda_integration,
   ]
 }
 
@@ -256,8 +257,8 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   # Hash of API resources
   triggers = {
     deployment_timestamp = timestamp()
-    api_resources_hash = md5(jsonencode(var.api_resources))
-    resource_count    = length(var.api_resources)
+    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
+    #resource_count    = length(var.api_resources)
   }
 }
 
