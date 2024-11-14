@@ -20,6 +20,11 @@ variable "stage_name" {
   type        = string
 }
 
+variable "name" {
+  description = "The name of the deployment stage"
+  type        = string
+}
+
 variable "api_resources" {
   description = "Map of API resources, methods, and associated Lambda functions"
   type = map(object({
