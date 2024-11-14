@@ -255,19 +255,4 @@ resource "aws_api_gateway_stage" "api_stage" {
   }
 }
 
-resource "null_resource" "api_redeploy" {
-  triggers = {
-    api_resources = jsonencode(var.api_resources)
-    stage_name    = var.stage_name
-    policy_change = jsonencode(local.normalized_policy)
-  }
-
-  depends_on = [
-    aws_api_gateway_method_response.api_method_response,
-    aws_api_gateway_method_response.options_method_response,
-    aws_api_gateway_integration.lambda_integration,
-    aws_api_gateway_integration.options_integration,
-    aws_api_gateway_rest_api_policy.rest_api_policy
-  ]
-}
 
