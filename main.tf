@@ -227,7 +227,15 @@ resource "null_resource" "api_redeploy" {
     # Normalize and re-encode the policy to avoid inconsistencies
     policy_change = jsonencode(local.normalized_policy)
   }
+
+  depends_on = [
+    aws_api_gateway_rest_api.rest_api,          # Ensure that the rest API is updated
+    aws_api_gateway_method.api_method,          # Track changes to methods
+    aws_api_gateway_integration.lambda_integration, # Track changes to integrations
+    aws_api_gateway_method_response.api_method_response # Track method response changes
+  ]
 }
+
 
 # Deploy the API
 resource "aws_api_gateway_deployment" "api_deployment" {
@@ -237,11 +245,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
     aws_api_gateway_rest_api_policy.rest_api_policy,
-    null_resource.api_redeploy
+    null_resource.api_redeploy  # Make sure it triggers redeployment when changes occur
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 }
+
 
 # Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
