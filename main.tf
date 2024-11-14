@@ -215,7 +215,6 @@ resource "aws_api_gateway_stage" "api_stage" {
 # Deploy the API
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
-    aws_api_gateway_stage.api_stage,  # Ensure stage is created/updated first
     aws_api_gateway_method_response.api_method_response,
     aws_api_gateway_method_response.options_method_response,
     aws_api_gateway_integration.lambda_integration,
