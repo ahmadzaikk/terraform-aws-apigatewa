@@ -263,13 +263,16 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 
 # Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
-  depends_on = [aws_api_gateway_deployment.api_deployment]
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment,
+    null_resource.api_redeploy,
+  ]
 
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
-  lifecycle {
+   lifecycle {
     create_before_destroy = true
   }
 }
