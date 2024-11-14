@@ -258,9 +258,10 @@ resource "aws_api_gateway_stage" "api_stage" {
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
-  # Ensures that the stage gets updated whenever the deployment changes
   lifecycle {
     create_before_destroy = true
+    force_destroy = true  # Ensures the stage is recreated with every change
   }
 }
+
 
