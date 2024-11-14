@@ -259,9 +259,9 @@ resource "aws_api_gateway_stage" "api_stage" {
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
   lifecycle {
-    create_before_destroy = true
-    force_destroy = true  # Ensures the stage is recreated with every change
+    create_before_destroy = true  # Forces creation of the new stage before destroying the old one
   }
 }
+
 
 
