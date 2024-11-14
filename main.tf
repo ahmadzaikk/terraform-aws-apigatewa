@@ -200,8 +200,22 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
 }
 
 # Deploy the API
+
+# Create a stage for the deployment
+resource "aws_api_gateway_stage" "api_stage" {
+  depends_on = [
+    aws_api_gateway_rest_api.rest_api,  # Ensure the API is created first
+  ]
+
+  stage_name    = var.stage_name
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  deployment_id = aws_api_gateway_deployment.api_deployment.id
+}
+
+# Deploy the API
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
+    aws_api_gateway_stage.api_stage,  # Ensure stage is created/updated first
     aws_api_gateway_method_response.api_method_response,
     aws_api_gateway_method_response.options_method_response,
     aws_api_gateway_integration.lambda_integration,
@@ -224,15 +238,4 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     deployment_timestamp = timestamp()
     api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
   }
-}
-
-# Create a stage for the deployment
-resource "aws_api_gateway_stage" "api_stage" {
-  depends_on = [
-    aws_api_gateway_deployment.api_deployment,
-  ]
-
-  stage_name    = var.stage_name
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  deployment_id = aws_api_gateway_deployment.api_deployment.id
 }
