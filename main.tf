@@ -10,7 +10,7 @@ resource "aws_api_gateway_rest_api" "rest_api" {
   description = "API Gateway with Lambda integration (non-proxy) and CORS enabled"
 }
 
-# Loop over each resource in api_resources
+# Define API resources
 resource "aws_api_gateway_resource" "api_resource" {
   for_each = var.api_resources
 
@@ -19,17 +19,17 @@ resource "aws_api_gateway_resource" "api_resource" {
   path_part   = each.value.path_part
 }
 
-# Loop over each resource to create methods
+# Define methods for each resource
 resource "aws_api_gateway_method" "api_method" {
   for_each = var.api_resources
 
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   resource_id   = aws_api_gateway_resource.api_resource[each.key].id
-  http_method   = each.value.methods[0]  # Using the first method as an example
-  authorization = "NONE"                 # Adjust as needed
+  http_method   = each.value.methods[0]
+  authorization = "NONE"
 }
 
-# Integrate the methods with the respective Lambda function for each resource
+# Integrate methods with Lambda functions
 resource "aws_api_gateway_integration" "lambda_integration" {
   for_each = var.api_resources
 
@@ -46,7 +46,7 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   ]
 }
 
-# Grant API Gateway permission to invoke the Lambda function for each resource
+# Lambda permissions for API Gateway
 resource "aws_lambda_permission" "allow_api_gateway" {
   for_each = var.api_resources
 
@@ -57,7 +57,7 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   source_arn    = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.rest_api.id}/*/*"
 }
 
-# Define method response for CORS
+# Method responses for CORS
 resource "aws_api_gateway_method_response" "api_method_response" {
   for_each = var.api_resources
 
@@ -73,7 +73,7 @@ resource "aws_api_gateway_method_response" "api_method_response" {
   }
 }
 
-# Integrate responses with corresponding integration response
+# Integration responses for CORS
 resource "aws_api_gateway_integration_response" "api_integration_response" {
   for_each = var.api_resources
 
@@ -98,7 +98,7 @@ resource "aws_api_gateway_integration_response" "api_integration_response" {
   ]
 }
 
-# Define OPTIONS method for CORS
+# OPTIONS method for CORS
 resource "aws_api_gateway_method" "options_method" {
   for_each = var.api_resources
 
@@ -108,7 +108,7 @@ resource "aws_api_gateway_method" "options_method" {
   authorization = "NONE"
 }
 
-# Integrate the OPTIONS method
+# MOCK integration for OPTIONS method
 resource "aws_api_gateway_integration" "options_integration" {
   for_each = var.api_resources
 
@@ -117,15 +117,11 @@ resource "aws_api_gateway_integration" "options_integration" {
   http_method             = aws_api_gateway_method.options_method[each.key].http_method
   type                    = "MOCK"
   request_templates = {
-    "application/json" = <<EOF
-{
-  "statusCode": 200
-}
-EOF
+    "application/json" = "{\"statusCode\": 200}"
   }
 }
 
-# Define method response for OPTIONS
+# OPTIONS method response for CORS
 resource "aws_api_gateway_method_response" "options_method_response" {
   for_each = var.api_resources
 
@@ -141,7 +137,7 @@ resource "aws_api_gateway_method_response" "options_method_response" {
   }
 }
 
-# Define integration response for OPTIONS
+# Integration response for OPTIONS method
 resource "aws_api_gateway_integration_response" "options_integration_response" {
   for_each = var.api_resources
 
@@ -153,7 +149,7 @@ resource "aws_api_gateway_integration_response" "options_integration_response" {
   response_parameters = {
     "method.response.header.Access-Control-Allow-Origin"  = "'*'",
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
-    "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,GET,POST'",
+    "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,GET,POST'"
   }
 
   response_templates = {
@@ -163,7 +159,7 @@ resource "aws_api_gateway_integration_response" "options_integration_response" {
   depends_on = [aws_api_gateway_method_response.options_method_response]
 }
 
-# Create a resource policy for the API Gateway
+# API Gateway resource policy
 resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
@@ -196,13 +192,15 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
   })
 }
 
-# random_id resource to trigger deployment on API changes
-resource "random_id" "deployment_trigger" {
-  keepers = {
-    resources_hash = jsonencode(var.api_resources)
+# Force redeployment on every `terraform apply`
+resource "null_resource" "api_redeploy_trigger" {
+  provisioner "local-exec" {
+    command = "echo 'Triggering redeployment of API Gateway'"
   }
 
-  byte_length = 8
+  triggers = {
+    always_run = timestamp()
+  }
 }
 
 # Deploy the API
@@ -210,12 +208,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   depends_on = [
+    null_resource.api_redeploy_trigger,
     aws_api_gateway_method_response.api_method_response,
     aws_api_gateway_method_response.options_method_response,
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
-    aws_api_gateway_rest_api_policy.rest_api_policy,
-    random_id.deployment_trigger
+    aws_api_gateway_rest_api_policy.rest_api_policy
   ]
 
   lifecycle {
