@@ -236,11 +236,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
     aws_api_gateway_rest_api_policy.rest_api_policy,
-    null_resource.api_redeploy
+    null_resource.api_redeploy  # Ensure the deployment depends on the null_resource trigger
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 }
+
 
 # Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
@@ -248,9 +249,9 @@ resource "aws_api_gateway_stage" "api_stage" {
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
-  # Ensures that the stage gets updated whenever the deployment changes
   lifecycle {
     create_before_destroy = true
   }
 }
+
 
