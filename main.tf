@@ -214,12 +214,16 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
     aws_api_gateway_resource.api_resource,
+    # Ensure any deletion of resources is handled before deployment
+    aws_api_gateway_method.api_method,  # Add the method destroy dependency here
+    aws_api_gateway_method.options_method,  # For OPTIONS methods
+    aws_api_gateway_resource.api_resource,  # Ensure API resource removal happens first
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = true  # Ensures that the new deployment is created before destroying the old one
   }
 
   # Use dynamic triggers for deployment changes
@@ -228,6 +232,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
   }
 }
+
 
 # API Gateway Stage
 resource "aws_api_gateway_stage" "api_stage" {
