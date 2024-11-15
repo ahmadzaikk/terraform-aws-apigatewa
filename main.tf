@@ -219,48 +219,26 @@ locals {
   normalized_policy = jsondecode(aws_api_gateway_rest_api_policy.rest_api_policy.policy)
 }
 
-resource "null_resource" "api_redeploy" {
+resource "null_resource" "force_redeploy" {
   triggers = {
-    api_resources = jsonencode(var.api_resources)
-    stage_name    = var.stage_name
-    policy_change = jsonencode(local.normalized_policy)
+    redeploy_trigger = uuid() # Ensures it always triggers
   }
-  depends_on = [
-    aws_api_gateway_resource.api_resource,
-    aws_api_gateway_method.api_method,
-    aws_api_gateway_method.options_method,
-    aws_api_gateway_integration.lambda_integration,
-  ]
 }
+
 
 # Deploy the API
 resource "aws_api_gateway_deployment" "api_deployment" {
-  depends_on = [
-    aws_api_gateway_method_response.api_method_response,
-    aws_api_gateway_method_response.options_method_response,
-    aws_api_gateway_integration.lambda_integration,
-    aws_api_gateway_integration.options_integration,
-    aws_api_gateway_rest_api_policy.rest_api_policy,
-    null_resource.api_redeploy,
-    aws_api_gateway_resource.api_resource,
-    aws_api_gateway_method.api_method,
-    aws_api_gateway_method.options_method,
-  ]
-
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
-  # Dynamic trigger
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
   }
 
-  # Hash of API resources
-  triggers = {
-    deployment_timestamp = timestamp()
-    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
-    #resource_count    = length(var.api_resources)
-  }
+  depends_on = [
+    null_resource.force_redeploy
+  ]
 }
+
 
 # Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
@@ -271,10 +249,7 @@ resource "aws_api_gateway_stage" "api_stage" {
   lifecycle {
     create_before_destroy = true
   }
-
-  depends_on = [
-    aws_api_gateway_deployment.api_deployment
-  ]
 }
+
 
 
