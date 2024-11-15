@@ -235,7 +235,7 @@ resource "aws_api_gateway_stage" "api_stage" {
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
   lifecycle {
-    create_before_destroy = true  # Create the new stage before destroying the old one
+    create_before_destroy = false  # Create the new stage before destroying the old one
   }
 
   depends_on = [aws_api_gateway_deployment.api_deployment]  # Ensures that stage is created after deployment
