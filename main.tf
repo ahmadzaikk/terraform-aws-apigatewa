@@ -268,11 +268,6 @@ resource "aws_api_gateway_stage" "api_stage" {
   stage_name    = "prod"
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
-  # Force the stage to always reference the latest deployment
-  triggers = {
-    deployment_timestamp = aws_api_gateway_deployment.api_deployment.triggers["deployment_timestamp"]
-  }
-
   lifecycle {
     create_before_destroy = true
   }
@@ -281,4 +276,5 @@ resource "aws_api_gateway_stage" "api_stage" {
     aws_api_gateway_deployment.api_deployment
   ]
 }
+
 
