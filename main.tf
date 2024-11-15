@@ -264,13 +264,21 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 
 # Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
-  depends_on = [
-    aws_api_gateway_deployment.api_deployment,
-    null_resource.api_redeploy,
-  ]
-
-  stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  stage_name    = "prod"
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
+  # Force the stage to always reference the latest deployment
+  triggers = {
+    deployment_timestamp = aws_api_gateway_deployment.api_deployment.triggers["deployment_timestamp"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment
+  ]
 }
+
