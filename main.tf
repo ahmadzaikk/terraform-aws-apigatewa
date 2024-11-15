@@ -204,6 +204,7 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
 # API Gateway Deployment
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
+    aws_api_gateway_stage.api_stage,  # Ensure stage is created before deployment
     aws_api_gateway_integration_response.api_integration_response,
     aws_api_gateway_integration_response.options_integration_response,
     aws_lambda_permission.allow_api_gateway,
@@ -213,18 +214,13 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_method.options_method,
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
-    aws_api_gateway_resource.api_resource,
-    aws_api_gateway_stage.api_stage,
-    # Ensure any deletion of resources is handled before deployment
-    aws_api_gateway_method.api_method,  # Add the method destroy dependency here
-    aws_api_gateway_method.options_method,  # For OPTIONS methods
-    aws_api_gateway_resource.api_resource,  # Ensure API resource removal happens first
+    aws_api_gateway_resource.api_resource
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   lifecycle {
-    create_before_destroy = false  # Ensures that the new deployment is created before destroying the old one
+    create_before_destroy = false  # Ensure that the new deployment is created before destroying the old one
   }
 
   # Use dynamic triggers for deployment changes
@@ -237,13 +233,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 
 # API Gateway Stage
 resource "aws_api_gateway_stage" "api_stage" {
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  stage_name  = "prod"
+  rest_api_id  = aws_api_gateway_rest_api.rest_api.id
+  stage_name   = "prod"
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
   lifecycle {
     create_before_destroy = true  # Create the new stage before destroying the old one
   }
-
-  #depends_on = [aws_api_gateway_deployment.api_deployment]
 }
+
