@@ -2,8 +2,8 @@ provider "aws" {
   region = var.region
 }
 
-data "aws_caller_identity" "current" {}
 
+data "aws_caller_identity" "current" {}
 # Define the API Gateway
 resource "aws_api_gateway_rest_api" "rest_api" {
   name        = var.name
@@ -20,6 +20,7 @@ resource "aws_api_gateway_resource" "api_resource" {
 }
 
 # Loop over each resource to create methods
+# Loop over each resource to create methods
 resource "aws_api_gateway_method" "api_method" {
   for_each = var.api_resources
 
@@ -29,6 +30,7 @@ resource "aws_api_gateway_method" "api_method" {
   authorization = "NONE"                 # Adjust as needed
 }
 
+# Integrate the methods with the respective Lambda function for each resource
 # Integrate the methods with the respective Lambda function for each resource
 resource "aws_api_gateway_integration" "lambda_integration" {
   for_each = var.api_resources
@@ -46,6 +48,9 @@ resource "aws_api_gateway_integration" "lambda_integration" {
     aws_api_gateway_method_response.api_method_response  # Static reference to method responses
   ]
 }
+
+
+
 
 # Grant API Gateway permission to invoke the respective Lambda function for each resource
 resource "aws_lambda_permission" "allow_api_gateway" {
@@ -74,6 +79,9 @@ resource "aws_api_gateway_method_response" "api_method_response" {
   }
 }
 
+
+
+
 # Integrate the responses with the corresponding integration response
 resource "aws_api_gateway_integration_response" "api_integration_response" {
   for_each = var.api_resources
@@ -99,6 +107,10 @@ resource "aws_api_gateway_integration_response" "api_integration_response" {
     aws_api_gateway_integration.lambda_integration  # Static reference to integrations
   ]
 }
+
+
+
+
 
 # Define OPTIONS method for CORS
 resource "aws_api_gateway_method" "options_method" {
@@ -126,6 +138,8 @@ resource "aws_api_gateway_integration" "options_integration" {
 }
 EOF
   }
+
+  
 }
 
 # Define method response for OPTIONS
@@ -199,43 +213,64 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
   })
 }
 
-# Deploy the API
-resource "aws_api_gateway_deployment" "api_deployment" {
+# Create a null resource to force redeployment whenever resource or policy changes occur
+locals {
+  # Decode the policy to ensure it's treated consistently during JSON encoding
+  normalized_policy = jsondecode(aws_api_gateway_rest_api_policy.rest_api_policy.policy)
+}
+
+resource "null_resource" "api_redeploy" {
+  triggers = {
+    api_resources = jsonencode(var.api_resources)
+    stage_name    = var.stage_name
+    policy_change = jsonencode(local.normalized_policy)
+  }
   depends_on = [
-    aws_api_gateway_integration_response.api_integration_response,
-    aws_api_gateway_integration_response.options_integration_response,
-    aws_lambda_permission.allow_api_gateway,
-    aws_api_gateway_method_response.api_method_response,
-    aws_api_gateway_method_response.options_method_response,
+    aws_api_gateway_resource.api_resource,
     aws_api_gateway_method.api_method,
     aws_api_gateway_method.options_method,
     aws_api_gateway_integration.lambda_integration,
+  ]
+}
+
+# Deploy the API
+resource "aws_api_gateway_deployment" "api_deployment" {
+  depends_on = [
+    aws_api_gateway_method_response.api_method_response,
+    aws_api_gateway_method_response.options_method_response,
+    aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
-    aws_api_gateway_resource.api_resource
+    aws_api_gateway_rest_api_policy.rest_api_policy,
+    null_resource.api_redeploy,
+    aws_api_gateway_resource.api_resource,
+    aws_api_gateway_method.api_method,
+    aws_api_gateway_method.options_method,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
+  # Dynamic trigger
   lifecycle {
-    create_before_destroy = false
+    create_before_destroy = true
   }
 
+  # Hash of API resources
   triggers = {
     deployment_timestamp = timestamp()
-    api_resources_hash   = md5(jsonencode(aws_api_gateway_resource.api_resource))
+    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
+    #resource_count    = length(var.api_resources)
   }
 }
 
-
-# API Gateway Stage (depends on the deployment)
+# Create a stage for the deployment
 resource "aws_api_gateway_stage" "api_stage" {
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment,
+    null_resource.api_redeploy,
+  ]
+
+  stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  stage_name    = "prod"
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
-  lifecycle {
-    create_before_destroy = true  # Ensures that a new stage is created before destroying the old one
-  }
-
-  depends_on = [aws_api_gateway_deployment.api_deployment]
 }
