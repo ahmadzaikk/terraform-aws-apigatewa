@@ -214,6 +214,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
     aws_api_gateway_resource.api_resource,
+    aws_api_gateway_stage.api_stage,
     # Ensure any deletion of resources is handled before deployment
     aws_api_gateway_method.api_method,  # Add the method destroy dependency here
     aws_api_gateway_method.options_method,  # For OPTIONS methods
@@ -244,5 +245,5 @@ resource "aws_api_gateway_stage" "api_stage" {
     create_before_destroy = true  # Create the new stage before destroying the old one
   }
 
-  depends_on = [aws_api_gateway_deployment.api_deployment]
+  #depends_on = [aws_api_gateway_deployment.api_deployment]
 }
