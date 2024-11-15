@@ -236,5 +236,5 @@ resource "aws_api_gateway_stage" "api_stage" {
   #}
 
   depends_on = [
-    aws_api_gateway_deployment.api_deploymen]
+    aws_api_gateway_deployment.api_deployment]
 }
