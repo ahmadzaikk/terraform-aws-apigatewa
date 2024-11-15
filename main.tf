@@ -239,5 +239,8 @@ resource "aws_api_gateway_stage" "api_stage" {
     create_before_destroy = true  # Ensures that a new stage is created before destroying the old one
   }
 
-  depends_on = [aws_api_gateway_deployment.api_deployment]
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment,
+    aws_api_gateway_resource.api_resource
+ ]
 }
