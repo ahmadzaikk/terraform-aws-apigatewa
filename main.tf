@@ -237,7 +237,6 @@ resource "aws_api_gateway_stage" "api_stage" {
 
   lifecycle {
     create_before_destroy = true  # Ensures that a new stage is created before destroying the old one
-    ignore_changes = [deployment_id]
   }
 
   depends_on = [aws_api_gateway_deployment.api_deployment]
