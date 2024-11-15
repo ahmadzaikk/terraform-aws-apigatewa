@@ -201,40 +201,41 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
 
 # Deploy the API
 
-# Create a stage for the deployment
+# API Gateway Deployment
+resource "aws_api_gateway_deployment" "api_deployment" {
+  depends_on = [
+    aws_api_gateway_integration_response.api_integration_response,
+    aws_api_gateway_integration_response.options_integration_response,
+    aws_lambda_permission.allow_api_gateway,
+    aws_api_gateway_method_response.api_method_response,
+    aws_api_gateway_method_response.options_method_response,
+    aws_api_gateway_method.api_method,
+    aws_api_gateway_method.options_method,
+    aws_api_gateway_integration.lambda_integration,
+    aws_api_gateway_integration.options_integration,
+    aws_api_gateway_resource.api_resource,
+  ]
+
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  # Use dynamic triggers for deployment changes
+  triggers = {
+    deployment_timestamp = timestamp()
+    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
+  }
+}
+
+# API Gateway Stage
 resource "aws_api_gateway_stage" "api_stage" {
   depends_on = [
-    aws_api_gateway_rest_api.rest_api,  # Ensure the API is created first
+    aws_api_gateway_deployment.api_deployment, # Ensure deployment is created first
   ]
 
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
-}
-
-# Deploy the API
-resource "aws_api_gateway_deployment" "api_deployment" {
-  depends_on = [
-    aws_api_gateway_method_response.api_method_response,
-    aws_api_gateway_method_response.options_method_response,
-    aws_api_gateway_integration.lambda_integration,
-    aws_api_gateway_integration.options_integration,
-    aws_api_gateway_rest_api_policy.rest_api_policy,
-    aws_api_gateway_resource.api_resource,
-    aws_api_gateway_method.api_method,
-    aws_api_gateway_method.options_method,
-  ]
-
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-
-  # Dynamic trigger
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  # Hash of API resources
-  triggers = {
-    deployment_timestamp = timestamp()
-    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
-  }
 }
