@@ -201,6 +201,7 @@ resource "aws_api_gateway_rest_api_policy" "rest_api_policy" {
 
 # Deploy the API
 # API Gateway Deployment
+# API Gateway Deployment
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_integration_response.api_integration_response,
@@ -221,23 +222,22 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     create_before_destroy = false  # Ensures that the new deployment is created before destroying the old one
   }
 
-  # Use dynamic triggers for deployment changes
+  # Dynamic triggers to force a new deployment on changes
   triggers = {
     deployment_timestamp = timestamp()
-    api_resources_hash = md5(jsonencode(aws_api_gateway_resource.api_resource))
+    api_resources_hash   = md5(jsonencode(aws_api_gateway_resource.api_resource))
   }
 }
 
 # API Gateway Stage (depends on the deployment)
 resource "aws_api_gateway_stage" "api_stage" {
-  rest_api_id  = aws_api_gateway_rest_api.rest_api.id
-  stage_name   = var.stage_name
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  stage_name    = "prod"
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
   lifecycle {
-    create_before_destroy = false  # Create the new stage before destroying the old one
+    create_before_destroy = true  # Ensures that a new stage is created before destroying the old one
   }
 
-  depends_on = [aws_api_gateway_deployment.api_deployment]  # Ensures that stage is created after deployment
+  depends_on = [aws_api_gateway_deployment.api_deployment]
 }
-
